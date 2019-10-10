@@ -1,87 +1,102 @@
 import React from "react";
 import PropTypes from "prop-types";
 import classNames from "classnames";
+import _ from "lodash";
+
 import { dayjs } from "./utils";
 import { Table } from "./Table";
+
 import CalendarBody from "./CalendarBody";
 import CalendarHead from "./CalendarHead";
 import PickerUI from "./PickerUI";
 
 class LinkedCalendar extends React.Component {
   static propTypes = {
-    opens: PropTypes.string.isRequired,
-    position: PropTypes.string
-  };
-
-  state = {
-    leftCalendar: dayjs(),
-    rightCalendar: dayjs().add(1, "month")
+    opens: PropTypes.string,
+    position: PropTypes.string,
+    toLeft: PropTypes.bool,
+    noFooter: PropTypes.bool,
+    noInfo: PropTypes.bool,
+    noCancel: PropTypes.bool
   };
 
   static defaultProps = {
-    position: "left"
+    position: "left",
+    opens: "left"
   };
-  createProps = () => {
+
+  constructor(props) {
+    super(props);
+
+    const leftCalendar = dayjs().subtract(props.toLeft ? 1 : 0, "month");
+    const rightCalendar = leftCalendar.add(1, "month");
+
+    this.state = { leftCalendar, rightCalendar };
+
+    this.handlePrev = this.handlePrev.bind(this);
+    this.handleNext = this.handleNext.bind(this);
+  }
+
+  handlePrev(leftCalendar) {
+    const rightCalendar = leftCalendar.add(1, "month");
+
+    this.setState({ leftCalendar, rightCalendar });
+  }
+
+  handleNext(rightCalendar) {
+    const leftCalendar = rightCalendar.subtract(1, "month");
+
+    this.setState({ rightCalendar, leftCalendar });
+  };
+
+  renderTable() {
     const { leftCalendar, rightCalendar } = this.state;
     const leftState = Object.assign({}, this.props, { calendar: leftCalendar });
     const rightState = Object.assign({}, this.props, {
       calendar: rightCalendar
     });
-    const { handlePrev, handleNext } = this;
-    return {
-      leftProps: {
-        handlePrev,
-        handleNext: () => { },
-        handleSelected: handlePrev,
-        showNext: false,
-        ...leftState
-      },
-      rightProps: {
-        showPrev: false,
-        handlePrev: () => { },
-        handleNext,
-        handleSelected: handleNext,
-        ...rightState
-      }
-    };
-  };
-
-  handlePrev = leftCalendar => {
-    this.setState({
-      leftCalendar,
-      rightCalendar: leftCalendar.add(1, "month")
-    });
-  };
-
-  handleNext = rightCalendar => {
-    this.setState({
-      rightCalendar,
-      leftCalendar: rightCalendar.subtract(1, "month")
-    });
-  };
-
-  renderTable = () => {
-    const props = this.createProps();
-    const { leftProps, rightProps } = props;
-    const className = classNames({
-      "drp-calendar": true,
-      left: true
-    });
+    const className = classNames("drp-calendar", "left");
 
     return [
       <div className={className} key={0}>
         <div className="calendar-table">
           <Table className="table-condensed">
-            <CalendarHead {...leftProps} />
-            <CalendarBody {...leftProps} />
+            <CalendarHead
+              handlePrev={this.handlePrev}
+              handleNext={() => {}}
+              handleSelected={this.handlePrev}
+              showNext={false}
+              {...leftState}
+              />
+
+            <CalendarBody
+              handlePrev={this.handlePrev}
+              handleNext={() => {}}
+              handleSelected={this.handlePrev}
+              showNext={false}
+              {...leftState}
+              />
           </Table>
         </div>
       </div>,
       <div className={className} key={1}>
         <div className="calendar-table">
           <Table className="table-condensed">
-            <CalendarHead {...rightProps} />
-            <CalendarBody {...rightProps} />
+            <CalendarHead
+              showPrev={false}
+              handlePrev={() => { }}
+              handleNext={this.handleNext}
+              handleSelected={this.handleNext}
+              {...rightState}
+              />
+
+            <CalendarBody
+              showPrev={false}
+              handlePrev={() => { }}
+              handleNext={this.handleNext}
+              handleSelected={this.handleNext}
+              {...rightState}
+              />
           </Table>
         </div>
       </div>
@@ -89,18 +104,14 @@ class LinkedCalendar extends React.Component {
   };
   render() {
     const { opens, children } = this.props;
-    const className = classNames({
-      [`opens${opens}`]: true,
-      "daterangepicker ltr show-calendar": true
-    });
+    const className = classNames(`opens${opens}`, "daterangepicker ltr show-calendar");
+    const styles = {
+      left: "auto",
+      display: "block"
+    };
+
     return (
-      <div
-        className={className}
-        style={{
-          left: "auto",
-          display: "block"
-        }}
-      >
+      <div className={className} style={styles}>
         {this.renderTable()}
         {children}
       </div>
@@ -112,8 +123,7 @@ class LinkedCalendar extends React.Component {
 export default class LinkedCalendarUI extends React.Component {
   render() {
     const uiProps = { ...this.props, component: LinkedCalendar }
-    return (
-      <PickerUI {...uiProps} />
-    );
+
+    return(<PickerUI {...uiProps} />);
   }
 }
